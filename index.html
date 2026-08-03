@@ -18,16 +18,14 @@
                   get: function() { return _fetchVal; },
                   set: function(val) { _fetchVal = val; },
                   configurable: true,
-                  enumerable: true
+                  enumerable: false
                 });
               }
             } catch (e) {}
           }
 
-          var curr = window;
-          while (curr) {
-            enableFetchAssignment(curr);
-            curr = Object.getPrototypeOf(curr);
+          if (typeof window !== 'undefined') {
+            enableFetchAssignment(window);
           }
           if (typeof Window !== 'undefined' && Window.prototype) {
             enableFetchAssignment(Window.prototype);
