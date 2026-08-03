@@ -49,6 +49,7 @@ export default function App() {
 
   const [peers, setPeers] = useState<PeerDevice[]>([]);
   const [activePeerId, setActivePeerId] = useState<string | null>('all');
+  const [showMobileChat, setShowMobileChat] = useState<boolean>(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [gattLogs, setGattLogs] = useState<GattLogEntry[]>([]);
   const [isOnline, setIsOnline] = useState<boolean>(true);
@@ -106,17 +107,50 @@ export default function App() {
           await localDB.setKV('config', config);
         }
 
-        // Load saved peers
+        // Filter out fake chats and mock peers stored in IndexedDB
+        const mockDeviceNames = [
+          'esp32-ble-chat-node',
+          'sam (ble gatt client)',
+          'nrf52840-mesh-relay',
+          'alex (nearby smartphone)',
+        ];
+
+        const isMockPeer = (p: PeerDevice) =>
+          mockDeviceNames.some((name) => p.name.toLowerCase().includes(name)) ||
+          p.id.startsWith('mock-') ||
+          p.id.startsWith('esp32-') ||
+          p.id.startsWith('sam-') ||
+          p.id.startsWith('nrf-') ||
+          p.id.startsWith('alex-');
+
+        const mockMsgTexts = [
+          'hello via bluetooth! 👋',
+          'sending file over gatt 📁',
+          'bluetooth signal ok? 📶',
+          'offline ble packet test ⚡',
+        ];
+
         const savedPeers = await localDB.getSavedPeers();
-        if (savedPeers.length > 0) {
-          setPeers(savedPeers);
+        const realPeers = savedPeers.filter((p) => !isMockPeer(p));
+
+        const savedMsgs = await localDB.getAllMessages();
+        const realMsgs = savedMsgs.filter(
+          (m) =>
+            !m.fromName.toLowerCase().includes('esp32') &&
+            !m.fromName.toLowerCase().includes('sam') &&
+            !m.fromName.toLowerCase().includes('nrf') &&
+            !m.fromName.toLowerCase().includes('alex') &&
+            !mockMsgTexts.includes(m.text.toLowerCase())
+        );
+
+        if (realPeers.length !== savedPeers.length || realMsgs.length !== savedMsgs.length) {
+          await localDB.clearAllHistory();
+          for (const p of realPeers) await localDB.savePeer(p);
+          for (const m of realMsgs) await localDB.saveMessage(m);
         }
 
-        // Load saved messages
-        const savedMsgs = await localDB.getAllMessages();
-        if (savedMsgs.length > 0) {
-          setMessages(savedMsgs);
-        }
+        setPeers(realPeers);
+        setMessages(realMsgs);
 
         // Create Bluetooth Manager instance
         const mgr = new BluetoothChatManager(currentConfig, currentProfile);
@@ -205,6 +239,7 @@ export default function App() {
   const handleSelectPeer = useCallback((peer: PeerDevice | 'all') => {
     const peerId = peer === 'all' ? 'all' : peer.id;
     setActivePeerId(peerId);
+    setShowMobileChat(true);
   }, []);
 
   // Send Message Handler
@@ -338,27 +373,32 @@ export default function App() {
 
         {/* Main Workspace (Sidebar + Chat Area) */}
         <div className="flex-1 flex min-h-0 overflow-hidden relative">
-          <Sidebar
-            peers={peers}
-            activePeerId={activePeerId}
-            lastMessagesMap={lastMessagesMap}
-            isScanning={status === 'scanning'}
-            onSelectPeer={handleSelectPeer}
-            onScanClick={handleScanForPeers}
-          />
+          <div className={`${showMobileChat ? 'hidden md:flex' : 'flex'} w-full md:w-80 lg:w-96 flex-col shrink-0 min-h-0 overflow-hidden`}>
+            <Sidebar
+              peers={peers}
+              activePeerId={activePeerId}
+              lastMessagesMap={lastMessagesMap}
+              isScanning={status === 'scanning'}
+              onSelectPeer={handleSelectPeer}
+              onScanClick={handleScanForPeers}
+            />
+          </div>
 
-          <ChatWindow
-            activePeer={selectedPeer}
-            messages={messages.filter(
-              (m) => activePeerId === 'all' || m.peerId === activePeerId
-            )}
-            userProfile={userProfile}
-            onSendMessage={handleSendMessage}
-            onSendFileMessage={handleSendFileMessage}
-            onClearChat={handleClearChat}
-            onExportChat={handleExportChat}
-            onOpenGattInspector={() => setShowGattInspector(true)}
-          />
+          <div className={`${showMobileChat ? 'flex' : 'hidden md:flex'} flex-1 flex-col min-h-0 w-full overflow-hidden`}>
+            <ChatWindow
+              activePeer={selectedPeer}
+              messages={messages.filter(
+                (m) => activePeerId === 'all' || m.peerId === activePeerId
+              )}
+              userProfile={userProfile}
+              onSendMessage={handleSendMessage}
+              onSendFileMessage={handleSendFileMessage}
+              onClearChat={handleClearChat}
+              onExportChat={handleExportChat}
+              onOpenGattInspector={() => setShowGattInspector(true)}
+              onBackToSidebar={() => setShowMobileChat(false)}
+            />
+          </div>
         </div>
 
         {/* Modals */}

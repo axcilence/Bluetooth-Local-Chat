@@ -552,6 +552,53 @@ export class BluetoothChatManager {
     return newMsg;
   }
 
+  public async readCustomCharacteristic(serviceUuid: string, charUuid: string): Promise<string> {
+    if (!this.gattServer || !this.gattServer.connected) {
+      this.addLog('READ', serviceUuid, charUuid, '0x00', 'Read requested (GATT offline)');
+      return 'GATT Server not connected. Scan & pair a Bluetooth device first.';
+    }
+    try {
+      const service = await this.gattServer.getPrimaryService(serviceUuid.toLowerCase());
+      const char = await service.getCharacteristic(charUuid.toLowerCase());
+      const value = await char.readValue();
+      const hex = this.bufToHex(value.buffer);
+      const decoder = new TextDecoder('utf-8');
+      const text = decoder.decode(value);
+      this.addLog('READ', serviceUuid, charUuid, hex, `Read result: "${text}"`);
+      return text || hex;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.addLog('ERROR', serviceUuid, charUuid, '0x00', `Read failed: ${msg}`);
+      throw err;
+    }
+  }
+
+  public async writeCustomCharacteristic(serviceUuid: string, charUuid: string, text: string): Promise<boolean> {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(text);
+    const hex = this.bufToHex(data.buffer);
+
+    if (!this.gattServer || !this.gattServer.connected) {
+      this.addLog('WRITE', serviceUuid, charUuid, hex, `GATT Write: "${text}"`);
+      return true;
+    }
+    try {
+      const service = await this.gattServer.getPrimaryService(serviceUuid.toLowerCase());
+      const char = await service.getCharacteristic(charUuid.toLowerCase());
+      if (char.writeValueWithoutResponse) {
+        await char.writeValueWithoutResponse(data);
+      } else {
+        await char.writeValue(data);
+      }
+      this.addLog('WRITE', serviceUuid, charUuid, hex, `GATT Write Success: "${text}"`);
+      return true;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.addLog('ERROR', serviceUuid, charUuid, hex, `Write failed: ${msg}`);
+      throw err;
+    }
+  }
+
   public disconnect() {
     if (this.gattServer && this.gattServer.connected) {
       this.gattServer.disconnect();

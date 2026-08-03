@@ -21,6 +21,7 @@ import {
   Image as ImageIcon,
   X,
   File,
+  ArrowLeft,
 } from 'lucide-react';
 import { PeerDevice, ChatMessage, UserProfile, FileAttachment } from '../types';
 
@@ -33,6 +34,7 @@ interface ChatWindowProps {
   onClearChat: () => void;
   onExportChat: () => void;
   onOpenGattInspector: () => void;
+  onBackToSidebar?: () => void;
 }
 
 export const ChatWindow: React.FC<ChatWindowProps> = ({
@@ -44,6 +46,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   onClearChat,
   onExportChat,
   onOpenGattInspector,
+  onBackToSidebar,
 }) => {
   const [inputText, setInputText] = useState('');
   const [showMenu, setShowMenu] = useState(false);
@@ -178,26 +181,36 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   return (
     <main className="flex-1 bg-black/10 flex flex-col min-h-0 overflow-hidden relative backdrop-blur-3xl">
       {/* Active Conversation Topbar */}
-      <header className="h-16 bg-white/5 border-b border-white/10 px-4 sm:px-6 flex items-center justify-between shrink-0 z-10 backdrop-blur-xl">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-10 h-10 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+      <header className="h-14 sm:h-16 bg-white/5 border-b border-white/10 px-2.5 sm:px-6 flex items-center justify-between shrink-0 z-10 backdrop-blur-xl">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          {onBackToSidebar && (
+            <button
+              onClick={onBackToSidebar}
+              className="md:hidden p-2 text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-colors cursor-pointer shrink-0"
+              title="Back to Bluetooth Devices"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </button>
+          )}
+
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
             {getDeviceIcon(activePeer)}
           </div>
 
           <div className="min-w-0">
-            <h2 className="text-sm font-bold text-slate-100 truncate flex items-center gap-2">
-              <span>{peerName}</span>
+            <h2 className="text-xs sm:text-sm font-bold text-slate-100 truncate flex items-center gap-1.5 sm:gap-2">
+              <span className="truncate">{peerName}</span>
               {!isBroadcast && (
-                <span className="text-[9px] font-mono font-bold px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-full">
-                  {activePeer.connected ? 'Bluetooth Paired' : 'Offline'}
+                <span className="text-[9px] font-mono font-bold px-1.5 sm:px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-full shrink-0">
+                  {activePeer.connected ? 'Paired' : 'Offline'}
                 </span>
               )}
             </h2>
-            <p className="text-[11px] text-slate-400 truncate flex items-center gap-1.5 mt-0.5">
-              <ShieldCheck className="w-3.5 h-3.5 text-blue-400 inline shrink-0" />
-              <span>
+            <p className="text-[10px] sm:text-[11px] text-slate-400 truncate flex items-center gap-1 sm:gap-1.5 mt-0.5">
+              <ShieldCheck className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-blue-400 inline shrink-0" />
+              <span className="truncate">
                 {isBroadcast
-                  ? 'Bluetooth Local Transfer Channel'
+                  ? 'BLE Local Transfer'
                   : `${activePeer.deviceType} • RSSI: ${activePeer.rssi} dBm`}
               </span>
             </p>
@@ -205,7 +218,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         </div>
 
         {/* Action Controls */}
-        <div className="relative flex items-center gap-2">
+        <div className="relative flex items-center gap-1.5 sm:gap-2 shrink-0">
           <button
             onClick={onOpenGattInspector}
             className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 text-blue-300 rounded-xl text-xs font-semibold border border-white/10 transition-colors cursor-pointer backdrop-blur-md"
@@ -394,13 +407,14 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       )}
 
       {/* Quick Reply Chips */}
-      <div className="px-4 py-2 bg-white/5 border-t border-white/5 flex items-center gap-1.5 overflow-x-auto no-scrollbar text-xs backdrop-blur-md shrink-0">
+      <div className="px-2.5 sm:px-4 py-1.5 bg-white/5 border-t border-white/5 flex items-center gap-1.5 overflow-x-auto no-scrollbar text-xs backdrop-blur-md shrink-0">
         <Zap className="w-3.5 h-3.5 text-amber-400 shrink-0" />
         {quickChips.map((chip, idx) => (
           <button
             key={idx}
-            onClick={() => onSendMessage(chip)}
-            className="px-3 py-1 bg-white/5 hover:bg-white/10 text-slate-200 rounded-full shrink-0 transition-all text-[11px] cursor-pointer border border-white/10 font-medium"
+            type="button"
+            onClick={() => setInputText(chip)}
+            className="px-2.5 sm:px-3 py-1 bg-white/5 hover:bg-white/10 text-slate-200 rounded-full shrink-0 transition-all text-[10px] sm:text-[11px] cursor-pointer border border-white/10 font-medium whitespace-nowrap"
           >
             {chip}
           </button>
@@ -410,7 +424,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       {/* Message & File Composer Bar */}
       <form
         onSubmit={handleSend}
-        className="p-3 bg-white/5 border-t border-white/10 flex items-center gap-2 relative z-10 backdrop-blur-xl shrink-0"
+        className="p-2 sm:p-3 bg-white/5 border-t border-white/10 flex items-center gap-1.5 sm:gap-2 relative z-10 backdrop-blur-xl shrink-0"
       >
         {/* Hidden File Input */}
         <input
@@ -425,24 +439,24 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          className="p-2.5 text-slate-400 hover:text-blue-400 bg-white/5 border border-white/10 rounded-2xl transition-colors cursor-pointer"
+          className="p-2 sm:p-2.5 text-slate-400 hover:text-blue-400 bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl transition-colors cursor-pointer shrink-0"
           title="Select image or document to transfer via Bluetooth"
         >
-          <Paperclip className="w-5 h-5" />
+          <Paperclip className="w-4 h-4 sm:w-5 sm:h-5" />
         </button>
 
         {/* Emoji Toggle */}
         <button
           type="button"
           onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-          className="p-2.5 text-slate-400 hover:text-amber-400 bg-white/5 border border-white/10 rounded-2xl transition-colors cursor-pointer"
+          className="p-2 sm:p-2.5 text-slate-400 hover:text-amber-400 bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl transition-colors cursor-pointer shrink-0"
         >
-          <Smile className="w-5 h-5" />
+          <Smile className="w-4 h-4 sm:w-5 sm:h-5" />
         </button>
 
         {/* Emoji Quick Picker */}
         {showEmojiPicker && (
-          <div className="absolute bottom-16 left-3 bg-slate-900/95 border border-white/10 rounded-2xl p-2 shadow-2xl flex items-center gap-2 z-30 backdrop-blur-xl">
+          <div className="absolute bottom-14 sm:bottom-16 left-2 sm:left-3 bg-slate-900/95 border border-white/10 rounded-2xl p-2 shadow-2xl flex items-center gap-1.5 sm:gap-2 z-30 backdrop-blur-xl max-w-[90vw] overflow-x-auto">
             {quickEmojis.map((emoji) => (
               <button
                 key={emoji}
@@ -451,7 +465,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                   setInputText((prev) => prev + emoji);
                   setShowEmojiPicker(false);
                 }}
-                className="p-1.5 hover:bg-white/10 rounded-xl text-base cursor-pointer transition-all"
+                className="p-1.5 hover:bg-white/10 rounded-xl text-base cursor-pointer transition-all shrink-0"
               >
                 {emoji}
               </button>
@@ -462,17 +476,17 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         {/* Input Field */}
         <input
           type="text"
-          placeholder={selectedFile ? 'Add an optional caption...' : 'Type message or choose a file via Bluetooth...'}
+          placeholder={selectedFile ? 'Add optional caption...' : 'Type message or pick file...'}
           value={inputText}
           onChange={(e) => setInputText(e.target.value)}
-          className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-4 py-2.5 text-xs text-slate-100 placeholder-slate-400 focus:outline-none focus:border-blue-500/50 transition-all font-sans"
+          className="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl px-3 py-2 sm:px-4 sm:py-2.5 text-[13px] sm:text-xs text-slate-100 placeholder-slate-400 focus:outline-none focus:border-blue-500/50 transition-all font-sans"
         />
 
         {/* Send Button */}
         <button
           type="submit"
           disabled={!inputText.trim() && !selectedFile}
-          className="p-2.5 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white rounded-2xl shadow-lg shadow-blue-600/30 border border-blue-400/30 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+          className="p-2 sm:p-2.5 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white rounded-xl sm:rounded-2xl shadow-lg shadow-blue-600/30 border border-blue-400/30 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shrink-0"
         >
           <Send className="w-4 h-4" />
         </button>
