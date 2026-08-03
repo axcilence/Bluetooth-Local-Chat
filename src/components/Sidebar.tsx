@@ -118,19 +118,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Peers List */}
       <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-2">
         {filteredPeers.length === 0 ? (
-          <div className="p-8 text-center text-slate-400 space-y-3 bg-white/5 border border-white/5 rounded-2xl">
+          <div className="p-6 text-center text-slate-400 space-y-3 bg-white/5 border border-white/5 rounded-2xl">
             <Bluetooth className="w-8 h-8 mx-auto text-slate-500 animate-pulse" />
-            <p className="text-xs">No nearby Bluetooth devices paired or available.</p>
-            <p className="text-[10px] text-slate-500">
-              Ensure Bluetooth is turned on in your browser/device settings and click below.
+            <p className="text-xs font-semibold text-slate-300">No Bluetooth devices paired yet.</p>
+            <p className="text-[10px] text-slate-400 leading-relaxed">
+              Ensure hardware Bluetooth is ON and tap Scan to discover nearby BLE peripherals (e.g. ESP32, GATT devices).
             </p>
-            <button
-              onClick={onScanClick}
-              className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold cursor-pointer transition-all inline-flex items-center gap-1.5 shadow-md shadow-blue-600/20"
-            >
-              <Zap className="w-3.5 h-3.5" />
-              <span>Scan Bluetooth Devices</span>
-            </button>
+            <div className="pt-1">
+              <button
+                onClick={onScanClick}
+                className="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold cursor-pointer transition-all inline-flex items-center justify-center gap-1.5 shadow-md shadow-blue-600/20"
+              >
+                <Zap className="w-3.5 h-3.5" />
+                <span>Scan Bluetooth Devices</span>
+              </button>
+            </div>
           </div>
         ) : (
           filteredPeers.map((peer) => {

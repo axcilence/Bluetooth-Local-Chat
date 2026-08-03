@@ -107,50 +107,26 @@ export default function App() {
           await localDB.setKV('config', config);
         }
 
-        // Filter out fake chats and mock peers stored in IndexedDB
-        const mockDeviceNames = [
-          'esp32-ble-chat-node',
-          'sam (ble gatt client)',
-          'nrf52840-mesh-relay',
-          'alex (nearby smartphone)',
-        ];
-
-        const isMockPeer = (p: PeerDevice) =>
-          mockDeviceNames.some((name) => p.name.toLowerCase().includes(name)) ||
-          p.id.startsWith('mock-') ||
-          p.id.startsWith('esp32-') ||
-          p.id.startsWith('sam-') ||
-          p.id.startsWith('nrf-') ||
-          p.id.startsWith('alex-');
-
-        const mockMsgTexts = [
-          'hello via bluetooth! 👋',
-          'sending file over gatt 📁',
-          'bluetooth signal ok? 📶',
-          'offline ble packet test ⚡',
-        ];
-
         const savedPeers = await localDB.getSavedPeers();
+        // Filter out any legacy fake/mock devices saved in IndexedDB
+        const isMockPeer = (p: PeerDevice) =>
+          p.id.includes('esp32') ||
+          p.id.includes('mobile-ble') ||
+          p.id.includes('mock') ||
+          p.id.includes('ble-node') ||
+          p.name.toLowerCase().includes('galaxy') ||
+          p.name.toLowerCase().includes('microcontroller') ||
+          p.name.toLowerCase().includes('virtual');
+
         const realPeers = savedPeers.filter((p) => !isMockPeer(p));
-
         const savedMsgs = await localDB.getAllMessages();
-        const realMsgs = savedMsgs.filter(
-          (m) =>
-            !m.fromName.toLowerCase().includes('esp32') &&
-            !m.fromName.toLowerCase().includes('sam') &&
-            !m.fromName.toLowerCase().includes('nrf') &&
-            !m.fromName.toLowerCase().includes('alex') &&
-            !mockMsgTexts.includes(m.text.toLowerCase())
-        );
 
-        if (realPeers.length !== savedPeers.length || realMsgs.length !== savedMsgs.length) {
+        if (realPeers.length !== savedPeers.length) {
           await localDB.clearAllHistory();
-          for (const p of realPeers) await localDB.savePeer(p);
-          for (const m of realMsgs) await localDB.saveMessage(m);
         }
 
         setPeers(realPeers);
-        setMessages(realMsgs);
+        setMessages(savedMsgs);
 
         // Create Bluetooth Manager instance
         const mgr = new BluetoothChatManager(currentConfig, currentProfile);

@@ -163,13 +163,20 @@ export class BluetoothChatManager {
 
   // --- Scan Action using standard Web Bluetooth API ---
   public async scanForPeers(): Promise<void> {
+    this.setStatus('scanning');
+    this.addLog('SYSTEM', '0x1800', '0x2A00', 'SCAN_START', 'Scanning for nearby Bluetooth hardware devices...');
+
     if (typeof navigator === 'undefined' || !('bluetooth' in navigator)) {
-      this.setStatus('unsupported', 'Web Bluetooth API is not available in this browser.');
+      const ua = typeof window !== 'undefined' ? window.navigator.userAgent : '';
+      const isIOS = /iPad|iPhone|iPod/.test(ua);
+      const unsupportedMsg = isIOS
+        ? 'Web Bluetooth API is disabled in iOS browsers (Safari, Brave, Chrome). Please open this app in the free "Bluefy" Web BLE browser on iOS, or use Chrome/Edge on Android or Desktop.'
+        : 'Web Bluetooth API is not supported by your browser. Please use Chrome, Edge, or Opera over HTTPS.';
+
+      this.addLog('ERROR', '0x1800', '0x2A00', 'NO_WEB_BLE_API', unsupportedMsg);
+      this.setStatus('unsupported', unsupportedMsg);
       return;
     }
-
-    this.setStatus('scanning');
-    this.addLog('SYSTEM', '0x1800', '0x2A00', 'SCAN_START', 'Scanning for nearby Bluetooth devices...');
 
     try {
       // Trigger native browser Bluetooth selection dialog
@@ -190,7 +197,7 @@ export class BluetoothChatManager {
           '0x1800',
           '0x2A00',
           'DEV_FOUND',
-          `Selected device: ${device.name || 'Unnamed Device'} [ID: ${device.id}]`,
+          `Selected device: ${device.name || 'Unnamed BLE Device'} [ID: ${device.id}]`,
           device.name || 'BLE Device'
         );
 
@@ -225,12 +232,12 @@ export class BluetoothChatManager {
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : String(err);
       console.warn('Bluetooth device scan issue:', errorMsg);
-      this.addLog('ERROR', '0x0000', '0x0000', 'SCAN_CANCELLED', errorMsg);
+      this.addLog('ERROR', '0x0000', '0x0000', 'SCAN_ERROR', errorMsg);
 
-      if (errorMsg.includes('User cancelled')) {
+      if (errorMsg.includes('User cancelled') || errorMsg.includes('cancelled')) {
         this.setStatus('available', 'Scan cancelled by user.');
       } else {
-        this.setStatus('error', `Bluetooth Error: ${errorMsg}`);
+        this.setStatus('error', `Scan failed: ${errorMsg}`);
       }
     }
   }
