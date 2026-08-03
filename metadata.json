@@ -1,0 +1,6 @@
+{
+  "name": "Bluetooth Local Chat",
+  "description": "WhatsApp-style offline and local Bluetooth chat application with Web Bluetooth GATT integration, local peer server bridge, and fallback simulator.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
